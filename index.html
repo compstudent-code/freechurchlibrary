@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#315b4b">
+    <meta name="description" content="Browse your church library and check out books.">
+    <title>Church Library</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="#" aria-label="Church library home">
+          <span class="brand-mark" aria-hidden="true">CL</span>
+          <span id="church-name">Church Library</span>
+        </a>
+        <button id="sign-out-button" class="button button-quiet hidden" type="button">Sign out</button>
+      </header>
+
+      <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+      <section id="loading-screen" class="card loading-card" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        <p>Getting the library ready…</p>
+      </section>
+
+      <section id="church-screen" class="card form-card hidden">
+        <p class="eyebrow">Welcome</p>
+        <h1>Please enter your church code:</h1>
+        <p class="muted">Your code connects you to your church’s library.</p>
+        <form id="church-form" class="stack">
+          <label for="church-code">Church code</label>
+          <input id="church-code" name="churchCode" autocomplete="organization" required maxlength="32" pattern="[a-zA-Z0-9-]+" placeholder="e.g. gbcma">
+          <button class="button button-primary" type="submit">Continue</button>
+        </form>
+      </section>
+
+      <section id="auth-screen" class="card form-card hidden">
+        <p class="eyebrow">Your library, your community</p>
+        <h1>Sign in to your church library</h1>
+        <p class="muted">No password is needed. Sign in with Google or receive a secure link by email.</p>
+        <form id="email-form" class="stack">
+          <label for="member-name">Your name</label>
+          <input id="member-name" name="name" autocomplete="name" required maxlength="100" placeholder="First and last name">
+          <label for="member-email">Email address</label>
+          <input id="member-email" name="email" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com">
+          <label for="member-phone">Phone number <span class="optional">(optional)</span></label>
+          <input id="member-phone" name="phone" type="tel" autocomplete="tel" maxlength="32" placeholder="For library follow-up">
+          <button class="button button-primary" type="submit">Email me a sign-in link</button>
+        </form>
+        <div class="divider"><span>or</span></div>
+        <button id="google-button" class="button button-outline button-wide" type="button">
+          <span class="google-g" aria-hidden="true">G</span>
+          Continue with Google
+        </button>
+        <p class="fine-print">New accounts need library administrator approval before they can browse or borrow. Your phone number is optional contact information; this app does not use phone sign-in or send SMS.</p>
+        <button id="change-church-button" class="text-button" type="button">Change church</button>
+      </section>
+
+      <section id="pending-screen" class="card message-card hidden">
+        <div class="illustration" aria-hidden="true">✓</div>
+        <p class="eyebrow">Request received</p>
+        <h1>Your account is waiting for approval</h1>
+        <p class="muted">A library administrator needs to approve your account before you can browse or check out books. You can return to this page after approval.</p>
+        <button id="pending-sign-out-button" class="button button-outline" type="button">Sign out</button>
+      </section>
+
+      <section id="denied-screen" class="card message-card hidden">
+        <p class="eyebrow">Library access</p>
+        <h1>Your request was not approved</h1>
+        <p class="muted">Please contact your church library administrator if you think this is a mistake.</p>
+        <button id="denied-sign-out-button" class="button button-outline" type="button">Sign out</button>
+      </section>
+
+      <section id="member-screen" class="hidden">
+        <div id="member-actions">
+          <div class="welcome-row">
+            <div>
+              <p class="eyebrow">Church library</p>
+              <h1 id="member-greeting">Welcome</h1>
+            </div>
+            <p id="member-count" class="count-pill"></p>
+          </div>
+          <div class="card action-card">
+            <p class="eyebrow">Your library</p>
+            <h2>What would you like to do?</h2>
+            <p class="muted">Explore the collection or find your next read.</p>
+            <div class="member-actions">
+              <button id="browse-catalog-button" class="button button-outline" type="button">
+                <span aria-hidden="true">⌕</span>
+                Browse the catalog
+              </button>
+              <button id="start-checkout-button" class="button button-primary" type="button">
+                <span aria-hidden="true">↗</span>
+                Check out a book
+              </button>
+            </div>
+          </div>
+          <div class="toolbar home-toolbar">
+            <button id="show-profile-button" class="button button-outline" type="button">My contact info</button>
+          </div>
+        </div>
+        <div id="member-catalog" class="hidden">
+          <div class="welcome-row catalog-welcome">
+            <div>
+              <p class="eyebrow">Church library</p>
+              <h1 id="catalog-heading">Browse the catalog</h1>
+            </div>
+            <button id="back-to-actions-button" class="button button-outline" type="button">Back</button>
+          </div>
+          <div class="toolbar">
+            <label class="search-box" for="catalog-search">
+              <span aria-hidden="true">⌕</span>
+              <input id="catalog-search" type="search" placeholder="Search title or author" autocomplete="off">
+            </label>
+            <button id="catalog-profile-button" class="button button-outline" type="button">My contact info</button>
+          </div>
+          <div id="catalog-list" class="book-grid"></div>
+          <div id="catalog-empty" class="card empty-state hidden">
+            <h2>No books found</h2>
+            <p class="muted">Try another search, or check back later.</p>
+          </div>
+        </div>
+        <section id="profile-panel" class="card profile-panel hidden">
+          <div>
+            <div class="section-heading">
+              <div><p class="eyebrow">Your account</p><h2>Contact information</h2></div>
+              <button id="close-profile-button" class="icon-button" type="button" aria-label="Close contact information">×</button>
+            </div>
+            <form id="profile-form" class="stack compact-stack">
+              <label for="profile-name">Name</label>
+              <input id="profile-name" required maxlength="100" autocomplete="name">
+              <label for="profile-phone">Phone number <span class="optional">(optional)</span></label>
+              <input id="profile-phone" type="tel" maxlength="32" autocomplete="tel">
+              <button class="button button-primary" type="submit">Save contact information</button>
+            </form>
+          </div>
+        </section>
+      </section>
+
+      <section id="admin-screen" class="hidden">
+        <div class="welcome-row">
+          <div><p class="eyebrow">Library administration</p><h1 id="admin-greeting">Administrator</h1></div>
+          <span class="admin-pill">Admin</span>
+        </div>
+        <div class="admin-tabs" role="tablist" aria-label="Admin sections">
+          <button class="tab-button active" data-admin-tab="requests" type="button" role="tab" aria-selected="true">Approvals <span id="request-count" class="tab-count">0</span></button>
+          <button class="tab-button" data-admin-tab="books" type="button" role="tab" aria-selected="false">Catalog</button>
+          <button class="tab-button" data-admin-tab="loans" type="button" role="tab" aria-selected="false">Checkouts</button>
+          <button class="tab-button" data-admin-tab="settings" type="button" role="tab" aria-selected="false">Church details</button>
+        </div>
+        <section id="admin-requests-panel" class="admin-panel"></section>
+        <section id="admin-books-panel" class="admin-panel hidden"></section>
+        <section id="admin-loans-panel" class="admin-panel hidden"></section>
+        <section id="admin-settings-panel" class="admin-panel hidden"></section>
+      </section>
+
+      <footer class="site-footer">
+        <span>Made for your church community</span>
+        <button id="footer-change-church" class="text-button hidden" type="button">Switch church</button>
+      </footer>
+    </main>
+  </body>
+</html>
