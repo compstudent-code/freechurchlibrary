@@ -7,8 +7,8 @@ export const churches = {
   },
   test: {
     projectId: "church-library-test",
-    apiKey: "REPLACE_WITH_TEST_FIREBASE_WEB_API_KEY",
+    apiKey: "AIzaSyCBTGVpDpCzsNPRJ1hB9L6FFMmaFSgf930",
     authDomain: "church-library-test.firebaseapp.com",
-    appId: "REPLACE_WITH_TEST_FIREBASE_WEB_APP_ID"
+    appId: "1:23588950383:web:9761199faa56e20d72d89a"
   }
 };
