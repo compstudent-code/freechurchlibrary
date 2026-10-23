@@ -2,15 +2,14 @@
 
 A small browser-only church library app built with HTML, CSS, JavaScript modules, Firebase Authentication, and Cloud Firestore. There is no app server, password database, or SMS sign-in.
 
-## Church-code routing
+## Firebase configuration
 
-The church code is stored in this browser so it does not need to be entered again. Firebase configuration is **not** stored in a JavaScript file, local storage, or a database. The app reads the config from URL query parameters; if a required parameter is missing, it displays a form for the church code and Firebase settings. Submitting that form keeps the config in memory and adds it to the current URL so email sign-in links can return to this app with the same config.
+The app identifies the library by Firebase `projectId`. Firebase configuration is **not** stored in a JavaScript file, local storage, or a database. The app reads config from URL query parameters; if required values are missing, it displays a form for the Firebase settings. Settings entered in the form remain in memory for the current page visit. The email sign-in return URL carries the settings so sign-in can complete in the correct project.
 
 The URL parameter names match Firebase's Web app config:
 
 | Parameter | Required | Firebase field |
 | --- | --- | --- |
-| `churchCode` | Yes | Your church/library code (for example, `gbcma` or `test`) |
 | `apiKey` | Yes | `apiKey` |
 | `authDomain` | Yes | `authDomain` |
 | `projectId` | Yes | `projectId` |
@@ -46,12 +45,12 @@ Repeat for each project:
 After enabling GitHub Pages for this repository, note its site URL, usually `https://YOUR-GITHUB-NAME.github.io/freechurchlibrary/`. Add the query parameters using Firebase's values:
 
 ```text
-https://YOUR-GITHUB-NAME.github.io/freechurchlibrary/?churchCode=test&apiKey=YOUR_API_KEY&authDomain=church-library-test.firebaseapp.com&projectId=church-library-test&appId=YOUR_APP_ID
+https://YOUR-GITHUB-NAME.github.io/freechurchlibrary/?apiKey=YOUR_API_KEY&authDomain=church-library-test.firebaseapp.com&projectId=church-library-test&appId=YOUR_APP_ID
 ```
 
-Replace `YOUR-GITHUB-NAME`, `YOUR_API_KEY`, and `YOUR_APP_ID` with the real values from your GitHub Pages site and Firebase **Web app**. Do not include the Firebase config's JavaScript braces or quotation marks. Add optional config parameters the same way if Firebase provided them. If a value contains URL-reserved characters, URL-encode it; the browser's `URLSearchParams` handles encoding when the app updates the URL after form entry.
+Replace `YOUR-GITHUB-NAME`, `YOUR_API_KEY`, and `YOUR_APP_ID` with the real values from your GitHub Pages site and Firebase **Web app**. Do not include the Firebase config's JavaScript braces or quotation marks. Add optional config parameters the same way if Firebase provided them. If a value contains URL-reserved characters, percent-encode it; `URLSearchParams` does this automatically when constructing a query string. The app also uses `URLSearchParams` to encode settings in the email sign-in return URL.
 
-You can also paste the Firebase values into the form that appears when you open the plain GitHub Pages URL without the required parameters. The form asks for church code, project ID, API key, auth domain, and app ID; optional fields are under “Optional Firebase settings.” On submit, config is held in memory and placed into the address bar (not local storage or a JS source file). The saved church code alone is persisted.
+You can also paste the Firebase values into the form that appears when you open the plain GitHub Pages URL without the required parameters. The form asks for project ID, API key, auth domain, and app ID; optional fields are under “Optional Firebase settings.” On submit, the config stays in memory and is not saved to local storage or a JavaScript source file.
 
 **Privacy note:** Firebase web configuration and its API key identify a project; they are not passwords and Firebase expects browser apps to use them. However, URL parameters are visible in the address bar, browser history, and may be copied/shared. Never put service-account credentials, private keys, passwords, or other secrets in the URL. Protect data with Firestore Security Rules.
 
@@ -87,7 +86,7 @@ In **Firestore Database** → **Data**, click **Start collection**. Create colle
    }
    ```
 
-The document's fields are `name` (string) and `theme` (map). Inside the map, create `primary`, `accent`, `background`, `surface`, and `text` as strings like `#315b4b`. This public document is what lets the app show the church's name and colors as soon as its code is selected.
+The document's fields are `name` (string) and `theme` (map). Inside the map, create `primary`, `accent`, `background`, `surface`, and `text` as strings like `#315b4b`. This public document lets the app show the church's name and colors after it connects to the project.
 
 ### 6. Publish the website with GitHub Pages
 
@@ -97,7 +96,7 @@ GitHub Pages serves the static app for free over HTTPS; this project does not re
 2. On GitHub, open the repository → **Settings** → **Pages**.
 3. Under **Build and deployment**, choose **Deploy from a branch**. Choose the branch that contains the files (commonly `main`) and folder `/ (root)`, then click **Save**.
 4. Wait for GitHub Pages to publish. Its URL will look like `https://YOUR-GITHUB-NAME.github.io/freechurchlibrary/`. In Firebase Authentication → **Settings** → **Authorized domains**, add `YOUR-GITHUB-NAME.github.io` (hostname only, without scheme or repository path).
-5. Open your site's URL with the Firebase query parameters from **Build the GitHub Pages URL** above. For example: `https://YOUR-GITHUB-NAME.github.io/freechurchlibrary/?churchCode=test&apiKey=YOUR_API_KEY&authDomain=church-library-test.firebaseapp.com&projectId=church-library-test&appId=YOUR_APP_ID`.
+5. Open your site's URL with the Firebase query parameters from **Build the GitHub Pages URL** above. For example: `https://YOUR-GITHUB-NAME.github.io/freechurchlibrary/?apiKey=YOUR_API_KEY&authDomain=church-library-test.firebaseapp.com&projectId=church-library-test&appId=YOUR_APP_ID`.
 
 To publish Firestore rules without Firebase CLI, open Firebase console → the correct project → **Firestore Database** → **Rules**, paste the contents of `firestore.rules`, and click **Publish**. Repeat in each separate Firebase project. The file `firebase.json` is for Firebase Hosting/CLI and is not required by GitHub Pages.
 
@@ -122,7 +121,7 @@ Do this separately in each church project. An admin UID from the test project's 
 
 ### Repeat for the second church
 
-Repeat Firebase steps 1–5 and 7 for `churchlibrarygbcma`. Select that project in the console before editing its Firestore data, Auth users/providers, or rules. Use that project's own config values in its URL; the church code alone does not configure or connect to Firebase.
+Repeat Firebase steps 1–5 and 7 for `churchlibrarygbcma`. Select that project in the console before editing its Firestore data, Auth users/providers, or rules. Use that project's own config values in its URL; the `projectId` selects which church library the app connects to.
 
 ## Sign-in and approval flow
 
