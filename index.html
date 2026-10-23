@@ -25,14 +25,31 @@
         <p>Getting the library ready…</p>
       </section>
 
-      <section id="church-screen" class="card form-card hidden">
-        <p class="eyebrow">Welcome</p>
-        <h1>Please enter your church code:</h1>
-        <p class="muted">Your code connects you to your church’s library.</p>
-        <form id="church-form" class="stack">
-          <label for="church-code">Church code</label>
-          <input id="church-code" name="churchCode" autocomplete="organization" required maxlength="32" pattern="[a-zA-Z0-9-]+" placeholder="e.g. gbcma">
-          <button class="button button-primary" type="submit">Continue</button>
+      <section id="config-screen" class="card form-card hidden">
+        <p class="eyebrow">Connect your library</p>
+        <h1>Enter Firebase web app settings</h1>
+        <p class="muted">This page normally receives these values in its URL. Paste the Firebase web app settings below to connect for this visit; they are kept in memory and are not saved by this app.</p>
+        <form id="firebase-config-form" class="stack">
+          <label for="firebase-api-key">API key</label>
+          <input id="firebase-api-key" name="apiKey" autocomplete="off" spellcheck="false" required maxlength="256">
+          <label for="firebase-auth-domain">Auth domain</label>
+          <input id="firebase-auth-domain" name="authDomain" autocomplete="off" spellcheck="false" required maxlength="253" placeholder="your-project.firebaseapp.com">
+          <label for="firebase-project-id">Project ID</label>
+          <input id="firebase-project-id" name="projectId" autocomplete="off" spellcheck="false" required maxlength="30" pattern="[a-z0-9][a-z0-9-]{4,28}[a-z0-9]">
+          <label for="firebase-app-id">App ID</label>
+          <input id="firebase-app-id" name="appId" autocomplete="off" spellcheck="false" required maxlength="256">
+          <details>
+            <summary>Optional Firebase settings</summary>
+            <label for="firebase-storage-bucket">Storage bucket</label>
+            <input id="firebase-storage-bucket" name="storageBucket" autocomplete="off" spellcheck="false" maxlength="253">
+            <label for="firebase-messaging-sender-id">Messaging sender ID</label>
+            <input id="firebase-messaging-sender-id" name="messagingSenderId" autocomplete="off" spellcheck="false" maxlength="32">
+            <label for="firebase-measurement-id">Measurement ID</label>
+            <input id="firebase-measurement-id" name="measurementId" autocomplete="off" spellcheck="false" maxlength="64">
+            <label for="firebase-database-url">Database URL</label>
+            <input id="firebase-database-url" name="databaseURL" type="url" autocomplete="off" spellcheck="false" maxlength="2048" placeholder="https://your-project.firebaseio.com">
+          </details>
+          <button class="button button-primary" type="submit">Connect to library</button>
         </form>
       </section>
 
@@ -55,7 +72,7 @@
           Continue with Google
         </button>
         <p class="fine-print">New accounts need library administrator approval before they can browse or borrow. Your phone number is optional contact information; this app does not use phone sign-in or send SMS.</p>
-        <button id="change-church-button" class="text-button" type="button">Change church</button>
+        <button id="change-church-button" class="text-button" type="button">Change Firebase project</button>
       </section>
 
       <section id="pending-screen" class="card message-card hidden">
@@ -158,7 +175,7 @@
 
       <footer class="site-footer">
         <span>Made for your church community</span>
-        <button id="footer-change-church" class="text-button hidden" type="button">Switch church</button>
+        <button id="footer-change-church" class="text-button hidden" type="button">Change Firebase project</button>
       </footer>
     </main>
   </body>

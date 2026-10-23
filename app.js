@@ -22,21 +22,19 @@ import {
   updateDoc,
   writeBatch
 } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
-import { churches } from "./firebase-config.js";
 
 const STORAGE_KEYS = {
-  church: "church-library-code",
   email: "church-library-signin-email",
   name: "church-library-signin-name",
   phone: "church-library-signin-phone"
 };
 const screens = [
-  "loading-screen", "church-screen", "auth-screen", "pending-screen",
+  "loading-screen", "config-screen", "auth-screen", "pending-screen",
   "denied-screen", "member-screen", "admin-screen"
 ];
 const colorPattern = /^#[0-9a-fA-F]{6}$/;
 
-let churchCode = "";
+let firebaseConfig;
 let auth;
 let db;
 let signedInUser;
@@ -52,7 +50,7 @@ const notice = byId("notice");
 function showScreen(name) {
   for (const id of screens) byId(id).classList.toggle("hidden", id !== name);
   byId("sign-out-button").classList.toggle("hidden", !signedInUser);
-  byId("footer-change-church").classList.toggle("hidden", !churchCode || Boolean(signedInUser));
+  byId("footer-change-church").classList.toggle("hidden", !firebaseConfig || Boolean(signedInUser));
 }
 
 function showNotice(message, type = "info") {
@@ -88,19 +86,40 @@ async function runAction(action) {
   }
 }
 
-function normalizeCode(raw) {
-  return raw.trim().toLowerCase();
-}
-
 function clearProfileDraft() {
   localStorage.removeItem(STORAGE_KEYS.email);
   localStorage.removeItem(STORAGE_KEYS.name);
   localStorage.removeItem(STORAGE_KEYS.phone);
 }
 
-function hasConfiguredFirebase(config) {
-  return config && config.projectId && config.apiKey && config.appId &&
-    !config.apiKey.startsWith("REPLACE_") && !config.appId.startsWith("REPLACE_");
+function validFirebaseConfig(config) {
+  return Boolean(
+    config &&
+    typeof config.apiKey === "string" && config.apiKey.trim() &&
+    typeof config.authDomain === "string" &&
+    /^[a-zA-Z0-9.-]+$/.test(config.authDomain) &&
+    typeof config.projectId === "string" &&
+    /^[a-zA-Z0-9-]{4,128}$/.test(config.projectId) &&
+    typeof config.appId === "string" && /^\d+:[\w-]+:(?:web|ios|android):[\w-]+$/.test(config.appId)
+  );
+}
+
+function readFirebaseConfigFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const config = {};
+  for (const key of ["apiKey", "authDomain", "projectId", "appId", "storageBucket", "messagingSenderId", "measurementId", "databaseURL"]) {
+    const value = params.get(key);
+    if (value) config[key] = value.trim();
+  }
+  return config;
+}
+
+function showFirebaseConfigForm(config = {}) {
+  for (const key of ["projectId", "apiKey", "authDomain", "appId", "storageBucket", "messagingSenderId", "measurementId", "databaseURL"]) {
+    const input = byId(`firebase-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`);
+    if (input) input.value = config[key] || "";
+  }
+  showScreen("config-screen");
 }
 
 function setBranding(settings) {
@@ -118,23 +137,11 @@ function setBranding(settings) {
   if (colorPattern.test(theme.text || "")) root.style.setProperty("--ink", theme.text);
 }
 
-async function connectToChurch(code) {
-  const config = churches[code];
-  if (!config) {
-    showScreen("church-screen");
-    showNotice("That church code is not configured. Please check the code with your church library.", "error");
-    return;
-  }
-  if (!hasConfiguredFirebase(config)) {
-    churchCode = code;
-    localStorage.setItem(STORAGE_KEYS.church, code);
-    showScreen("church-screen");
-    showNotice(`The ${code} church code is recognized, but its Firebase web-app settings have not been added yet. Ask the site administrator to complete firebase-config.js.`, "error");
-    return;
-  }
-  churchCode = code;
-  localStorage.setItem(STORAGE_KEYS.church, code);
-  const appName = `church-library-${code}`;
+async function connectToChurch(config) {
+  if (!validFirebaseConfig(config)) throw new Error("Enter a valid Firebase API key, auth domain, project ID, and app ID.");
+  firebaseConfig = { ...config };
+  showScreen("loading-screen");
+  const appName = `church-library-${config.projectId}`;
   const app = getApps().find((candidate) => candidate.name === appName) || initializeApp(config, appName);
   auth = getAuth(app);
   db = getFirestore(app);
@@ -174,7 +181,9 @@ async function completeEmailLinkIfPresent() {
   }
   const credential = await signInWithEmailLink(auth, email, window.location.href);
   localStorage.removeItem(STORAGE_KEYS.email);
-  window.history.replaceState({}, document.title, window.location.pathname);
+  const returnUrl = new URL(window.location.pathname, window.location.origin);
+  for (const [key, value] of Object.entries(firebaseConfig || {})) returnUrl.searchParams.set(key, value);
+  window.history.replaceState({}, document.title, returnUrl);
   const name = localStorage.getItem(STORAGE_KEYS.name) ||
     credential.user.displayName ||
     window.prompt("What name should the library use for your account?") ||
@@ -557,7 +566,7 @@ async function returnBook(loan) {
 function renderAdminSettings() {
   const panel = byId("admin-settings-panel");
   panel.replaceChildren();
-  const card = createAdminCard("Church details and colors", "These details are shown to library visitors when they select this church code.");
+  const card = createAdminCard("Church details and colors", "These details are shown to library visitors connected to this Firebase project.");
   const form = createElement("form", "settings-form");
   const nameLabel = createElement("label", "", "Church name");
   const nameInput = document.createElement("input");
@@ -645,8 +654,14 @@ async function sendEmailLink(event) {
   localStorage.setItem(STORAGE_KEYS.email, profile.email);
   localStorage.setItem(STORAGE_KEYS.name, profile.name);
   localStorage.setItem(STORAGE_KEYS.phone, profile.phone);
+  const returnUrl = new URL(window.location.pathname, window.location.origin);
+  if (firebaseConfig) {
+    for (const key of ["apiKey", "authDomain", "projectId", "appId", "storageBucket", "messagingSenderId", "measurementId", "databaseURL"]) {
+      if (firebaseConfig[key]) returnUrl.searchParams.set(key, firebaseConfig[key]);
+    }
+  }
   await sendSignInLinkToEmail(auth, profile.email, {
-    url: window.location.origin + window.location.pathname,
+    url: returnUrl.toString(),
     handleCodeInApp: true
   });
   showNotice(`A secure sign-in link was sent to ${profile.email}. Open that email on this device to continue.`, "success");
@@ -668,21 +683,25 @@ async function signInWithGoogle() {
 
 async function clearChurchSelection() {
   if (auth?.currentUser) await signOut(auth);
-  localStorage.removeItem(STORAGE_KEYS.church);
   clearProfileDraft();
-  churchCode = "";
+  firebaseConfig = undefined;
   auth = undefined;
   db = undefined;
   currentMember = undefined;
-  showScreen("church-screen");
+  showFirebaseConfigForm();
 }
 
 function bindEvents() {
-  byId("church-form").addEventListener("submit", (event) => void runAction(async () => {
+  byId("firebase-config-form").addEventListener("submit", (event) => void runAction(async () => {
     event.preventDefault();
-    const code = normalizeCode(byId("church-code").value);
-    if (!/^[a-z0-9-]{1,32}$/.test(code)) throw new Error("Use letters, numbers, or hyphens in the church code.");
-    await connectToChurch(code);
+    const data = new FormData(event.currentTarget);
+    const config = {};
+    for (const key of ["apiKey", "authDomain", "projectId", "appId", "storageBucket", "messagingSenderId", "measurementId", "databaseURL"]) {
+      const value = String(data.get(key) || "").trim();
+      if (value) config[key] = value;
+    }
+    if (!validFirebaseConfig(config)) throw new Error("Check the Firebase API key, auth domain, project ID, and app ID.");
+    await connectToChurch(config);
   }));
   byId("email-form").addEventListener("submit", (event) => void runAction(sendEmailLink));
   byId("google-button").addEventListener("click", () => void runAction(signInWithGoogle));
@@ -731,25 +750,22 @@ function bindEvents() {
 
 async function start() {
   bindEvents();
-  const savedCode = normalizeCode(localStorage.getItem(STORAGE_KEYS.church) || "");
-  if (!savedCode) {
-    showScreen("church-screen");
+  const urlConfig = readFirebaseConfigFromUrl();
+  const hasUrlConfig = Object.keys(urlConfig).length > 0;
+  if (hasUrlConfig && validFirebaseConfig(urlConfig)) {
+    try {
+      await connectToChurch(urlConfig);
+    } catch (error) {
+      console.error(error);
+      showFirebaseConfigForm(urlConfig);
+      showNotice(userMessage(error), "error");
+    }
     return;
   }
-  byId("church-code").value = savedCode;
-  if (!churches[savedCode]) {
-    localStorage.removeItem(STORAGE_KEYS.church);
-    showScreen("church-screen");
-    showNotice("Your saved church code is not configured. Please enter a valid code.", "error");
-    return;
-  }
-  try {
-    await connectToChurch(savedCode);
-  } catch (error) {
-    console.error(error);
-    showScreen("auth-screen");
-    showNotice(userMessage(error), "error");
-  }
+  showFirebaseConfigForm(urlConfig);
+  showNotice(hasUrlConfig
+    ? "Some Firebase URL parameters are missing or invalid. Complete the settings below."
+    : "Enter the Firebase settings from your church’s web app, or open a complete Firebase URL.", "info");
 }
 
 void start();
