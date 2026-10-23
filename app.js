@@ -93,15 +93,30 @@ function clearProfileDraft() {
 }
 
 function validFirebaseConfig(config) {
-  return Boolean(
-    config &&
-    typeof config.apiKey === "string" && config.apiKey.trim() &&
-    typeof config.authDomain === "string" &&
-    /^[a-zA-Z0-9.-]+$/.test(config.authDomain) &&
-    typeof config.projectId === "string" &&
-    /^[a-zA-Z0-9-]{4,128}$/.test(config.projectId) &&
-    typeof config.appId === "string" && /^\d+:[\w-]+:(?:web|ios|android):[\w-]+$/.test(config.appId)
-  );
+  if (!config || typeof config !== "object") return false;
+  const { apiKey, authDomain, projectId, appId } = config;
+  if (typeof apiKey !== "string" || !apiKey.trim() || apiKey.length > 256) return false;
+  if (typeof authDomain !== "string" ||
+      !/^(?=.{1,253}$)(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)(?:\.(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))+$/.test(authDomain)) return false;
+  if (typeof projectId !== "string" || !/^[a-z0-9][a-z0-9-]{4,28}[a-z0-9]$/.test(projectId)) return false;
+  if (typeof appId !== "string" ||
+      !/^\d+:[\w-]+:(?:web|ios|android):[\w-]+$/.test(appId) || appId.length > 256) return false;
+  for (const [key, value] of Object.entries(config)) {
+    if (value == null || value === "") continue;
+    const maxLength = key === "databaseURL" ? 2048 : 256;
+    if (typeof value !== "string" || value !== value.trim() || value.length > maxLength ||
+        /[\u0000-\u0020\u007f]/.test(value)) return false;
+  }
+  if (config.messagingSenderId && !/^\d+$/.test(config.messagingSenderId)) return false;
+  if (config.databaseURL) {
+    try {
+      const url = new URL(config.databaseURL);
+      if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+    } catch {
+      return false;
+    }
+  }
+  return true;
 }
 
 function readFirebaseConfigFromUrl() {
